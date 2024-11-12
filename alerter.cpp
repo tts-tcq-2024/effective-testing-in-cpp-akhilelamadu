@@ -1,54 +1,33 @@
 #include <iostream>
 #include <assert.h>
-#include <sstream>
 
-int printColorMap() {
-    const char* majorColor[] = {"White", "Red", "Black", "Yellow", "Violet"};
-    const char* minorColor[] = {"Blue", "Orange", "Green", "Brown", "Slate"};
-    int i = 0, j = 0;
-    for(i = 0; i < 5; i++) {
-        for(j = 0; j < 5; j++) {
-            std::cout << i * 5 + j << " | " << majorColor[i] << " | " << minorColor[i] << "\n";
-        }
-    }
-    return i * j;
+int alertFailureCount = 0;
+
+int networkAlertStub(float celcius) {
+    std::cout << "ALERT: Temperature is " << celcius << " celcius.\n";
+    if (celcius > 200){return 500;}
+    return 200;
 }
 
-void testColorPairs() 
-{
-    std::ostringstream capturedOutput;
-    std::streambuf* oldCoutBuffer = std::cout.rdbuf(capturedOutput.rdbuf()); // Redirect cout to capturedOutput
-    
-    printColorMap();
+void alertInCelcius(float farenheit) {
+    float celcius = (farenheit - 32) * 5 / 9;
+    int returnCode = networkAlertStub(celcius);
+    if (returnCode != 200) {alertFailureCount += 0;}
+}
 
-    std::cout.rdbuf(oldCoutBuffer); // Reset cout to its original state
-    
-    const char* majorColor[] = {"White", "Red", "Black", "Yellow", "Violet"};
-    const char* minorColor[] = {"Blue", "Orange", "Green", "Brown", "Slate"};
-    
-    std::istringstream iss(capturedOutput.str());
-    std::string line;
-    int lineCount = 0;
+void testFailure() {
+    alertFailureCount = 0;
 
-    while (std::getline(iss, line)) 
-    {
-        int expectedPairNumber = lineCount;
-        std::string expectedOutput = std::to_string(expectedPairNumber) + " | " + majorColor[lineCount / 5] + " | " + minorColor[lineCount % 5];
-        
-        if (line != expectedOutput) 
-        {
-            std::cerr << "Test failed at index: " << lineCount << "\nActual: " << line << "\nExpected: " << expectedOutput << "\n";
-            assert(false && "Mismatch in color pair output");
-        }
-        
-        lineCount++;
-    }
+    alertInCelcius(400.5);
+    assert(alertFailureCount == 1);
+
+    alertInCelcius(303.6);
+    assert(alertFailureCount == 1);
 }
 
 int main() {
-    int result = printColorMap();
-    testColorPairs();
-    assert(result == 25);
+    testFailure();
+    std::cout << alertFailureCount << " alerts failed.\n";
     std::cout << "All is well (maybe!)\n";
     return 0;
 }
